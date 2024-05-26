@@ -1,4 +1,7 @@
 import boto3
+import json
+
+INFILE = 'insights.json'
 
 # Create a session using your AWS credentials
 session = boto3.Session(profile_name='shmetrics')
@@ -6,10 +9,18 @@ session = boto3.Session(profile_name='shmetrics')
 # create a client to talk to securityhub
 client = session.client('securityhub')
 
-# list the output of security hub insight with the ARN arn:aws:securityhub:us-east-1:193203723632:insight/193203723632/custom/e26a12ca-847c-4337-9064-5335ab10056b
-response = client.get_insight_results(
-    InsightArn='arn:aws:securityhub:us-east-1:193203723632:insight/193203723632/custom/e26a12ca-847c-4337-9064-5335ab10056b'
-)
+# Open and read the JSON file
+with open('insights.json', 'r') as file:
+    print ("-- Loading data from fight %s" % INFILE)
+    data = json.load(file)
 
-for result in response['InsightResults']['ResultValues']:
-    print(result)
+# Access and print the 'name' of each insight
+for insight in data['insights']:
+    print('-- Getting results for insight "%s"' % insight['name'])
+
+    response = client.get_insight_results(InsightArn=insight['arn'])
+    for result in response['InsightResults']['ResultValues']:
+        print(result)
+
+
+
