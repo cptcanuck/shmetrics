@@ -1,0 +1,14 @@
+{
+    "insights": [
+        {
+            "name": "Findings by Severity",
+            "type": "KV",
+            "arn": "arn:aws:securityhub:us-east-1:193203723632:insight/193203723632/custom/e26a12ca-847c-4337-9064-5335ab10056b"
+        },
+        {
+            "name": "Top accounts by counts of findings",
+            "type": "Stats",
+            "arn": "arn:aws:securityhub:::insight/securityhub/default/27"
+        }
+    ]
+}
