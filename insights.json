@@ -1,13 +1,31 @@
 {
     "insights": [
         {
-            "name": "Findings by Severity",
+            "id": "custom/e26a12ca-847c-4337-9064-5335ab10056b",
+            "name": "Total Findings by Severity",
             "type": "KV",
+            "disabled": false,
             "arn": "arn:aws:securityhub:us-east-1:193203723632:insight/193203723632/custom/e26a12ca-847c-4337-9064-5335ab10056b"
         },
         {
+            "id": "custom/4db2bd2e-cff3-4efa-ae8d-5f2e56bdf810",
+            "name": "GuardDuty findings by Severity",
+            "type": "Stats",
+            "disabled": false,
+            "arn": "arn:aws:securityhub:us-east-1:193203723632:insight/193203723632/custom/4db2bd2e-cff3-4efa-ae8d-5f2e56bdf810"
+        },
+        {
+            "id": "custom/828eab70-3490-4142-b006-12c31628e816",
+            "arn": "arn:aws:securityhub:us-east-1:193203723632:insight/193203723632/custom/828eab70-3490-4142-b006-12c31628e816",
+            "name": "SecurityHub findings by Severity",
+            "type": "Stats",
+            "disabled": false
+        },
+        {
+            "id": "default/27",
             "name": "Top accounts by counts of findings",
             "type": "Stats",
+            "disabled": true,
             "arn": "arn:aws:securityhub:::insight/securityhub/default/27"
         }
     ]
