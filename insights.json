@@ -27,6 +27,13 @@
             "type": "Stats",
             "disabled": true,
             "arn": "arn:aws:securityhub:::insight/securityhub/default/27"
+        },
+        {
+            "id": "custom/0f70984f-65d2-46e1-8b91-126f637d330a",
+            "name": "IAM Access Anlyzer findings by Severity",
+            "type": "Stats",
+            "disabled": false,
+            "arn": "arn:aws:securityhub:us-east-1:193203723632:insight/193203723632/custom/0f70984f-65d2-46e1-8b91-126f637d330a"
         }
     ]
 }
