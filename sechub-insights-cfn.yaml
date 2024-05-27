@@ -3,9 +3,10 @@ Resources:
   MyInsight:
     Type: AWS::SecurityHub::Insight
     Properties:
-      Name: GuardDuty findings grouped by severity
-      Filters:
+      Name: 'GuardDuty findings grouped by severity'
+      Filters: 
         ProductName:
           - Comparison: EQUALS
             Value: GuardDuty
-      GroupByAttribute: aws/securityhub/SeverityLabel
+      
+      GroupByAttribute: 'SeverityLabel'
