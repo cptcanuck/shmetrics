@@ -1,7 +1,10 @@
 import boto3
 import json
+import datetime
 
 INFILE = 'insights.json'
+today = datetime.date.today().strftime("%Y%m%d")
+
 namespace = "shmetrics"
 DEBUG = True
 CWM_OUTPUT = True
@@ -33,11 +36,11 @@ for insight in data['insights']:
 
     # Initialize the stats dictionary with default values
     stats = {
-        'Critical': 0,
-        'High': 0,
-        'Medium': 0,
-        'Low': 0,
-        'Informational': 0
+        'CRITICAL': 0,
+        'HIGH': 0,
+        'MEDIUM': 0,
+        'LOW': 0,
+        'INFORMATIONAL': 0
     }
 
     ## Get information about the current insights and populate dict of results
@@ -51,7 +54,13 @@ for insight in data['insights']:
 
 
     ## Deal with CloudWatch Metrics
+    metrics = []
     if CWM_OUTPUT == True:
+        # Prepare the metrics to be sent to CloudWatch
+        # For each severity level, create a metric
+        # with the count of findings for that severity
+        # and the name of the insight as a dimension
+        # (so we can filter by insight name in CloudWatch)
         for severity in stats:
             metrics.append(
                 {
@@ -66,9 +75,11 @@ for insight in data['insights']:
             )
         
         # Send the metrics to CloudWatch
-        print("-- Sending metrics to CloudWatch... Namespace: %s" % namespace)
+        # The namespace should be the overall tool namespace, plus the insight name to help with filtering and organization and dashboards
+        thisNamespace = namespace + "/" + today + "/" + insight['name']
+        print("-- Sending metrics to CloudWatch... Namespace: %s" % thisNamespace)
         try:
-            response = cwclient.put_metric_data(Namespace=namespace, MetricData=metrics)
+            response = cwclient.put_metric_data(Namespace=thisNamespace, MetricData=metrics)
             print("--- Metrics sent successfully!")
         except Exception as e:
             print("ERROR: Failed to send metrics:", str(e))
