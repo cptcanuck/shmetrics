@@ -4,6 +4,7 @@ import json
 INFILE = 'insights.json'
 namespace = "shmetrics"
 DEBUG = False
+CWM_OUTPUT = False
 
 metrics = []
 
@@ -32,26 +33,30 @@ for insight in data['insights']:
     for result in response['InsightResults']['ResultValues']:
         if DEBUG == True: print("%s -> %s" % (result['GroupByAttributeValue'], result['Count']))
 
-        metrics.append(
-            {
-                "MetricName": "Count",
-                "Dimensions": [
-                    {"Name": "Insight", "Value": insight['name']},
-                    {"Name": "Severity", "Value": result['GroupByAttributeValue']},
-                ],
-                "Unit": "None",
-                "Value":  result['Count'],
-            }
-        )
+        if CWM_OUTPUT == True:
+            metrics.append(
+                {
+                    "MetricName": "Count",
+                    "Dimensions": [
+                        {"Name": "Insight", "Value": insight['name']},
+                        {"Name": "Severity", "Value": result['GroupByAttributeValue']},
+                    ],
+                    "Unit": "None",
+                    "Value":  result['Count'],
+                }
+            )
+        else:
+            if DEBUG == True: print("---Skipping CloudWatch output")
 
     if DEBUG == True:
         print("Discovered metrics:")
         print(metrics)
 
     # Send the metrics to CloudWatch
-    print("-- Sending metrics to CloudWatch... Namespace: %s" % namespace)
-    try:
-        response = cwclient.put_metric_data(Namespace=namespace, MetricData=metrics)
-        print("--- Metrics sent successfully!")
-    except Exception as e:
-        print("ERROR: Failed to send metrics:", str(e))
+    if CWM_OUTPUT == True:
+        print("-- Sending metrics to CloudWatch... Namespace: %s" % namespace)
+        try:
+            response = cwclient.put_metric_data(Namespace=namespace, MetricData=metrics)
+            print("--- Metrics sent successfully!")
+        except Exception as e:
+            print("ERROR: Failed to send metrics:", str(e))
