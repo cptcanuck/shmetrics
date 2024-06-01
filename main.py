@@ -3,10 +3,11 @@ import json
 
 INFILE = 'insights.json'
 namespace = "shmetrics"
-DEBUG = False
-CWM_OUTPUT = False
+DEBUG = True
+CWM_OUTPUT = True
 
 metrics = []
+stats = {}
 
 # Create a session using your AWS credentials
 session = boto3.Session(profile_name='shmetrics')
@@ -29,9 +30,20 @@ for insight in data['insights']:
 
     print('-- Getting results for insight "%s"' % insight['name'])
 
+
+    stats['Critical'] = 0
+    stats['High'] = 0
+    stats['Medium'] = 0
+    stats['Low'] = 0
+    stats['Informational'] = 0
+
     response = shclient.get_insight_results(InsightArn=insight['arn'])
     for result in response['InsightResults']['ResultValues']:
         if DEBUG == True: print("%s -> %s" % (result['GroupByAttributeValue'], result['Count']))
+
+        stats[result['GroupByAttributeValue']] = result['Count']
+
+        if DEBUG: print("Stats: %s" % stats)
 
         if CWM_OUTPUT == True:
             metrics.append(
