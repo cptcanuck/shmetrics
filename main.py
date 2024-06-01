@@ -31,12 +31,16 @@ for insight in data['insights']:
     print('-- Getting results for insight "%s"' % insight['name'])
 
 
-    stats['Critical'] = 0
-    stats['High'] = 0
-    stats['Medium'] = 0
-    stats['Low'] = 0
-    stats['Informational'] = 0
+    # Initialize the stats dictionary with default values
+    stats = {
+        'Critical': 0,
+        'High': 0,
+        'Medium': 0,
+        'Low': 0,
+        'Informational': 0
+    }
 
+    ## Get information about the current insights and populate dict of results
     response = shclient.get_insight_results(InsightArn=insight['arn'])
     for result in response['InsightResults']['ResultValues']:
         if DEBUG == True: print("%s -> %s" % (result['GroupByAttributeValue'], result['Count']))
@@ -45,30 +49,37 @@ for insight in data['insights']:
 
         if DEBUG: print("Stats: %s" % stats)
 
-        if CWM_OUTPUT == True:
+
+    ## Deal with CloudWatch Metrics
+    if CWM_OUTPUT == True:
+        for severity in stats:
             metrics.append(
                 {
                     "MetricName": "Count",
                     "Dimensions": [
                         {"Name": "Insight", "Value": insight['name']},
-                        {"Name": "Severity", "Value": result['GroupByAttributeValue']},
+                        {"Name": "Severity", "Value": severity},
                     ],
                     "Unit": "None",
-                    "Value":  result['Count'],
+                    "Value":  stats[severity],
                 }
             )
-        else:
-            if DEBUG == True: print("---Skipping CloudWatch output")
-
-    if DEBUG == True:
-        print("Discovered metrics:")
-        print(metrics)
-
-    # Send the metrics to CloudWatch
-    if CWM_OUTPUT == True:
+        
+        # Send the metrics to CloudWatch
         print("-- Sending metrics to CloudWatch... Namespace: %s" % namespace)
         try:
             response = cwclient.put_metric_data(Namespace=namespace, MetricData=metrics)
             print("--- Metrics sent successfully!")
         except Exception as e:
             print("ERROR: Failed to send metrics:", str(e))
+    else:
+        if DEBUG == True: print("---Skipping CloudWatch output")
+
+    if DEBUG == True:
+        print("Discovered metrics:")
+        print(metrics)
+
+
+
+
+
