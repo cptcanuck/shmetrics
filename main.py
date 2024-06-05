@@ -26,7 +26,7 @@ with open("insights.json", "r") as file:
 
 # Access and print the 'name' of each insight
 for insight in data["insights"]:
-    if insight["disabled"] == True:
+    if insight["disabled"]:
         print('\n-- Skipping disabled insight "%s"' % insight["name"])
         continue
 
@@ -35,23 +35,23 @@ for insight in data["insights"]:
     # Initialize the stats dictionary with default values
     stats = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFORMATIONAL": 0}
 
-    ## Get information about the current insights and populate dict of results
+    # Get information about the current insights and populate dict of results
     response = shclient.get_insight_results(InsightArn=insight["arn"])
-    ## https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/securityhub/client/get_insight_results.html
-    ## {'ResponseMetadata': {'RequestId': 'e010faf2-10dd-47a6-9caa-d19c4b20e0c6', 'HTTPStatusCode': 200, 'HTTPHeaders':
-    ## {'date': 'Sun, 02 Jun 2024 00:12:39 GMT', 'content-type': 'application/json', 'content-length': '283', 'connection': 'keep-alive',
-    ## 'x-amzn-requestid': 'e010faf2-10dd-47a6-9caa-d19c4b20e0c6', 'access-control-allow-origin': '*',
-    ## 'access-control-allow-headers': 'Authorization,Date,X-Amz-Date,X-Amz-Security-Token,X-Amz-Target,content-type,x-amz-content-sha256,x-amz-user-agent,x-amzn-platform-id,x-amzn-trace-id', 'x-amz-apigw-id': 'YtnWoEU6IAMEgFQ=', 'cache-control': 'no-cache', 'access-control-allow-methods': 'GET,POST,OPTIONS,PUT,PATCH,DELETE', 'access-control-expose-headers': 'x-amzn-errortype,x-amzn-requestid,x-amzn-errormessage,x-amzn-trace-id,x-amz-apigw-id,date', 'x-amzn-trace-id': 'Root=1-665bb8f6-0ac3ab6c233d295a56dbc65e', 'access-control-max-age': '86400'}, 'RetryAttempts': 0}, 'InsightResults': {'InsightArn': 'arn:aws:securityhub:us-east-1:193203723632:insight/193203723632/custom/e26a12ca-847c-4337-9064-5335ab10056b',
-    ## 'GroupByAttribute': 'SeverityLabel', 'ResultValues': [{'GroupByAttributeValue': 'LOW', 'Count': 17}, {'GroupByAttributeValue': 'MEDIUM', 'Count': 4}]}}
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/securityhub/client/get_insight_results.html
+    # {'ResponseMetadata': {'RequestId': 'e010faf2-10dd-47a6-9caa-d19c4b20e0c6', 'HTTPStatusCode': 200, 'HTTPHeaders':
+    # {'date': 'Sun, 02 Jun 2024 00:12:39 GMT', 'content-type': 'application/json', 'content-length': '283', 'connection': 'keep-alive',
+    # 'x-amzn-requestid': 'e010faf2-10dd-47a6-9caa-d19c4b20e0c6', 'access-control-allow-origin': '*',
+    # 'access-control-allow-headers': 'Authorization,Date,X-Amz-Date,X-Amz-Security-Token,X-Amz-Target,content-type,x-amz-content-sha256,x-amz-user-agent,x-amzn-platform-id,x-amzn-trace-id', 'x-amz-apigw-id': 'YtnWoEU6IAMEgFQ=', 'cache-control': 'no-cache', 'access-control-allow-methods': 'GET,POST,OPTIONS,PUT,PATCH,DELETE', 'access-control-expose-headers': 'x-amzn-errortype,x-amzn-requestid,x-amzn-errormessage,x-amzn-trace-id,x-amz-apigw-id,date', 'x-amzn-trace-id': 'Root=1-665bb8f6-0ac3ab6c233d295a56dbc65e', 'access-control-max-age': '86400'}, 'RetryAttempts': 0}, 'InsightResults': {'InsightArn': 'arn:aws:securityhub:us-east-1:193203723632:insight/193203723632/custom/e26a12ca-847c-4337-9064-5335ab10056b',
+    # 'GroupByAttribute': 'SeverityLabel', 'ResultValues': [{'GroupByAttributeValue': 'LOW', 'Count': 17}, {'GroupByAttributeValue': 'MEDIUM', 'Count': 4}]}}
 
-    if DEBUG == True:
+    if DEBUG:
         print(
             "--- DEBUG: Result from get_insight_results for %s - %s"
             % (insight["arn"], response)
         )
 
     for result in response["InsightResults"]["ResultValues"]:
-        if DEBUG == True:
+        if DEBUG:
             print("%s -> %s" % (result["GroupByAttributeValue"], result["Count"]))
 
         stats[result["GroupByAttributeValue"]] = result["Count"]
@@ -62,9 +62,9 @@ for insight in data["insights"]:
     if CONSOLE_OUT:
         print("--- All insight results: %s" % stats)
 
-    ## Deal with CloudWatch Metrics
+    # Deal with CloudWatch Metrics
     metrics = []
-    if CWM_OUTPUT == True:
+    if CWM_OUTPUT:
         cwclient = session.client("cloudwatch")
         # Prepare the metrics to be sent to CloudWatch
         # For each severity level, create a metric
@@ -96,9 +96,9 @@ for insight in data["insights"]:
         except Exception as e:
             print("ERROR: Failed to send metrics:", str(e))
     else:
-        if DEBUG == True:
+        if DEBUG:
             print("--- DEBUG: Skipping CloudWatch output")
 
-    if DEBUG == True:
+    if DEBUG:
         print("Discovered metrics:")
         print(metrics)
