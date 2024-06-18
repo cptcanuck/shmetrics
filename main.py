@@ -29,7 +29,7 @@ def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, message):
 
     # Create a log group
     try:
-        response = cwlclient.create_log_group(logGroupName=CWL_GROUPNAME)
+        cwlclient.create_log_group(logGroupName=CWL_GROUPNAME)
     except cwlclient.exceptions.ResourceAlreadyExistsException:
         logging.info("Log group already exists")
     except Exception as e:
@@ -37,7 +37,7 @@ def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, message):
 
     # Create a log stream
     try:
-        response = cwlclient.create_log_stream(
+        cwlclient.create_log_stream(
             logGroupName=CWL_GROUPNAME, logStreamName=CWL_STREAM
         )
     except cwlclient.exceptions.ResourceAlreadyExistsException:
@@ -47,7 +47,7 @@ def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, message):
 
     # Put a log event
     try:
-        response = cwlclient.put_log_events(
+        cwlclient.put_log_events(
             logGroupName=CWL_GROUPNAME,
             logStreamName=CWL_STREAM,
             logEvents=[
@@ -101,7 +101,7 @@ def put_cwmetrics_data(namespace, insight_metrics):
 
 
 ##############################################
-## Get Data from Security Hub
+# Get Data from Security Hub
 # Create a session using your AWS credentials
 session = boto3.Session(profile_name="shmetrics")
 
@@ -113,7 +113,7 @@ with open("insights.json", "r") as file:
     logging.info("-- Loading insight check list from file %s" % INFILE)
     insight_config = json.load(file)
 
-## Iterate over all the configured insights
+# Iterate over all the configured insights
 # Access and print the 'name' of each insight
 for insight in insight_config["insights"]:
     if insight["disabled"]:
