@@ -1,18 +1,105 @@
 import boto3
 import json
 import datetime
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 INFILE = "insights.json"
+logging.info("Reading insights from file %s" % INFILE)
 today = datetime.date.today().strftime("%Y%m%d")
 
 namespace = "shmetrics"
-DEBUG = False
 CWM_OUTPUT = True
 CONSOLE_OUT = True
+CWL_OUTPUT = True
+CWL_GROUPNAME = "shmetrics"
+CWL_STREAM = "shmetrics"
+
 
 metrics = []
-stats = {}
+insight_metrics = {}
 
+
+def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, message):
+    # Create a CloudWatch Logs client
+    cwlclient = session.client("logs")
+
+    # Create a log group
+    try:
+        response = cwlclient.create_log_group(logGroupName=CWL_GROUPNAME)
+    except cwlclient.exceptions.ResourceAlreadyExistsException:
+        logging.info("Log group already exists")
+    except Exception as e:
+        logging.error("ERROR: Failed to create log group:", str(e))
+
+    # Create a log stream
+    try:
+        response = cwlclient.create_log_stream(
+            logGroupName=CWL_GROUPNAME, logStreamName=CWL_STREAM
+        )
+    except cwlclient.exceptions.ResourceAlreadyExistsException:
+        logging.info("Log stream already exists")
+    except Exception as e:
+        logging.error("ERROR: Failed to create log stream:", str(e))
+
+    # Put a log event
+    try:
+        response = cwlclient.put_log_events(
+            logGroupName=CWL_GROUPNAME,
+            logStreamName=CWL_STREAM,
+            logEvents=[
+                {
+                    "timestamp": int(datetime.datetime.now().timestamp() * 1000),
+                    "message": message,
+                },
+            ],
+        )
+        logging.info("---- Log event sent successfully!")
+    except Exception as e:
+        logging.error("ERROR: Failed to put log event:", str(e))
+
+def put_cwmetrics_data(namespace, insight_metrics):
+    # Send the metrics to CloudWatch
+    cw_metric_data = []
+
+    # The namespace should be the overall tool namespace, plus the insight name to help with filtering and organization and dashboards
+    thisNamespace = namespace + "/" + today + "/" + insight["name"]
+    cwclient = session.client("cloudwatch")
+    # Prepare the metrics to be sent to CloudWatch
+    # For each severity level, create a metric
+    # with the count of findings for that severity
+    # and the name of the insight as a dimension
+    # (so we can filter by insight name in CloudWatch)
+    for severity in insight_metrics:
+        logging.info("adding data for %s" % severity)
+        cw_metric_data.append(
+            {
+                "MetricName": "Count",
+                "Dimensions": [
+                    {"Name": "Insight", "Value": insight["name"]},
+                    {"Name": "Severity", "Value": severity},
+                ],
+                "Unit": "None",
+                "Value": insight_metrics[severity],
+            }
+        )
+
+    # Send the metrics to CloudWatch
+    # The namespace should be the overall tool namespace, plus the insight name to help with filtering and organization and dashboards
+    thisNamespace = namespace + "/" + today + "/" + insight["name"]
+    logging.debug("--- Sending metrics to CloudWatch... Namespace: %s" % thisNamespace)
+    try:
+        # Send the metrics to CloudWatch
+        cwclient.put_metric_data(Namespace=thisNamespace, MetricData=cw_metric_data)
+        logging.info("---- Metrics sent successfully!")
+    except Exception as e:
+        logging.error("ERROR: Failed to send metrics:", str(e))
+
+
+
+##############################################
+## Get Data from Security Hub
 # Create a session using your AWS credentials
 session = boto3.Session(profile_name="shmetrics")
 
@@ -21,84 +108,49 @@ shclient = session.client("securityhub")
 
 # Open and read the JSON file
 with open("insights.json", "r") as file:
-    print("-- Loading insight check list from file %s" % INFILE)
-    data = json.load(file)
+    logging.info("-- Loading insight check list from file %s" % INFILE)
+    insight_config = json.load(file)
 
+## Iterate over all the configured insights
 # Access and print the 'name' of each insight
-for insight in data["insights"]:
+for insight in insight_config["insights"]:
     if insight["disabled"]:
-        print('\n-- Skipping disabled insight "%s"' % insight["name"])
+        logging.info('\n-- Skipping disabled insight "%s"' % insight["name"])
         continue
 
-    print('\n-- Getting results for insight "%s"' % insight["name"])
+    logging.info('\n-- Getting results for insight "%s"' % insight["name"])
 
     # Initialize the stats dictionary with default values
-    stats = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFORMATIONAL": 0}
+    insight_metrics = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFORMATIONAL": 0}
 
     # Get information about the current insights and populate dict of results
     response = shclient.get_insight_results(InsightArn=insight["arn"])
-    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/securityhub/client/get_insight_results.html
-    # {'ResponseMetadata': {'RequestId': 'e010faf2-10dd-47a6-9caa-d19c4b20e0c6', 'HTTPStatusCode': 200, 'HTTPHeaders':
-    # {'date': 'Sun, 02 Jun 2024 00:12:39 GMT', 'content-type': 'application/json', 'content-length': '283', 'connection': 'keep-alive',
-    # 'x-amzn-requestid': 'e010faf2-10dd-47a6-9caa-d19c4b20e0c6', 'access-control-allow-origin': '*',
-    # 'access-control-allow-headers': 'Authorization,Date,X-Amz-Date,X-Amz-Security-Token,X-Amz-Target,content-type,x-amz-content-sha256,x-amz-user-agent,x-amzn-platform-id,x-amzn-trace-id', 'x-amz-apigw-id': 'YtnWoEU6IAMEgFQ=', 'cache-control': 'no-cache', 'access-control-allow-methods': 'GET,POST,OPTIONS,PUT,PATCH,DELETE', 'access-control-expose-headers': 'x-amzn-errortype,x-amzn-requestid,x-amzn-errormessage,x-amzn-trace-id,x-amz-apigw-id,date', 'x-amzn-trace-id': 'Root=1-665bb8f6-0ac3ab6c233d295a56dbc65e', 'access-control-max-age': '86400'}, 'RetryAttempts': 0}, 'InsightResults': {'InsightArn': 'arn:aws:securityhub:us-east-1:193203723632:insight/193203723632/custom/e26a12ca-847c-4337-9064-5335ab10056b',
-    # 'GroupByAttribute': 'SeverityLabel', 'ResultValues': [{'GroupByAttributeValue': 'LOW', 'Count': 17}, {'GroupByAttributeValue': 'MEDIUM', 'Count': 4}]}}
 
-    if DEBUG:
-        print(
-            "--- DEBUG: Result from get_insight_results for %s - %s"
-            % (insight["arn"], response)
-        )
+    logging.debug("--- DEBUG: Result from get_insight_results for %s - %s" % (insight["arn"], response))
 
     for result in response["InsightResults"]["ResultValues"]:
-        if DEBUG:
-            print("%s -> %s" % (result["GroupByAttributeValue"], result["Count"]))
+        logging.debug("%s -> %s" % (result["GroupByAttributeValue"], result["Count"]))
 
-        stats[result["GroupByAttributeValue"]] = result["Count"]
+        # Populate the stats dictionary with the count of findings for each severity level
+        insight_metrics[result["GroupByAttributeValue"]] = result["Count"]
 
-        if DEBUG:
-            print("Stats: %s" % stats)
+        logging.debug("Stats: %s" % insight_metrics)
 
     if CONSOLE_OUT:
-        print("--- All insight results: %s" % stats)
+        logging.info("--- All insight results: %s" % insight_metrics)
 
     # Deal with CloudWatch Metrics
-    metrics = []
     if CWM_OUTPUT:
-        cwclient = session.client("cloudwatch")
-        # Prepare the metrics to be sent to CloudWatch
-        # For each severity level, create a metric
-        # with the count of findings for that severity
-        # and the name of the insight as a dimension
-        # (so we can filter by insight name in CloudWatch)
-        for severity in stats:
-            metrics.append(
-                {
-                    "MetricName": "Count",
-                    "Dimensions": [
-                        {"Name": "Insight", "Value": insight["name"]},
-                        {"Name": "Severity", "Value": severity},
-                    ],
-                    "Unit": "None",
-                    "Value": stats[severity],
-                }
-            )
-
-        # Send the metrics to CloudWatch
-        # The namespace should be the overall tool namespace, plus the insight name to help with filtering and organization and dashboards
-        thisNamespace = namespace + "/" + today + "/" + insight["name"]
-        print("--- Sending metrics to CloudWatch... Namespace: %s" % thisNamespace)
-        try:
-            response = cwclient.put_metric_data(
-                Namespace=thisNamespace, MetricData=metrics
-            )
-            print("---- Metrics sent successfully!")
-        except Exception as e:
-            print("ERROR: Failed to send metrics:", str(e))
+        put_cwmetrics_data(namespace, insight_metrics)
+        logging.debug("Discovered metrics:")
+        logging.debug(metrics)
     else:
-        if DEBUG:
-            print("--- DEBUG: Skipping CloudWatch output")
+        logging.info("--- DEBUG: Skipping CloudWatch Metrics output")
 
-    if DEBUG:
-        print("Discovered metrics:")
-        print(metrics)
+    if CWL_OUTPUT:
+        metrics_to_json = json.dumps(insight_metrics)
+        metrics_to_json.append(insight["name"])
+        put_cwl_data(CWL_GROUPNAME, CWL_STREAM, metrics_to_json)
+        logging.debug(metrics)
+    else:
+        logging.info("--- DEBUG: Skipping CloudWatch Logs output")
