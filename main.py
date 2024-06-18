@@ -3,7 +3,9 @@ import json
 import datetime
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 INFILE = "insights.json"
 logging.info("Reading insights from file %s" % INFILE)
@@ -59,6 +61,7 @@ def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, message):
     except Exception as e:
         logging.error("ERROR: Failed to put log event:", str(e))
 
+
 def put_cwmetrics_data(namespace, insight_metrics):
     # Send the metrics to CloudWatch
     cw_metric_data = []
@@ -97,7 +100,6 @@ def put_cwmetrics_data(namespace, insight_metrics):
         logging.error("ERROR: Failed to send metrics:", str(e))
 
 
-
 ##############################################
 ## Get Data from Security Hub
 # Create a session using your AWS credentials
@@ -121,12 +123,21 @@ for insight in insight_config["insights"]:
     logging.info('\n-- Getting results for insight "%s"' % insight["name"])
 
     # Initialize the stats dictionary with default values
-    insight_metrics = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFORMATIONAL": 0}
+    insight_metrics = {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+        "INFORMATIONAL": 0,
+    }
 
     # Get information about the current insights and populate dict of results
     response = shclient.get_insight_results(InsightArn=insight["arn"])
 
-    logging.debug("--- DEBUG: Result from get_insight_results for %s - %s" % (insight["arn"], response))
+    logging.debug(
+        "--- DEBUG: Result from get_insight_results for %s - %s"
+        % (insight["arn"], response)
+    )
 
     for result in response["InsightResults"]["ResultValues"]:
         logging.debug("%s -> %s" % (result["GroupByAttributeValue"], result["Count"]))
