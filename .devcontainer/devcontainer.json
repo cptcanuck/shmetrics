@@ -21,7 +21,8 @@
 				"mark-tucker.aws-cli-configure",
 				"redhat.vscode-yaml",
 				"ZainChen.json",
-				"mohsen1.prettify-json"
+				"mohsen1.prettify-json",
+				"ms-vscode.makefile-tools"
 			]
 		}
 	},
