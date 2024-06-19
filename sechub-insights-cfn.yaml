@@ -1,12 +1,70 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Resources:
-  MyInsight:
-    Type: AWS::SecurityHub::Insight
+  SecurityHubInsightSecHubSevOpen:
+    Type: 'AWS::SecurityHub::Insight'
     Properties:
-      Name: 'GuardDuty findings grouped by severity'
-      Filters: 
+      Name: 'SHMetrics: Security Hub Findings by Severity'
+      Filters:
         ProductName:
-          - Comparison: EQUALS
-            Value: GuardDuty
-      
+          - Comparison: 'EQUALS'
+            Value: 'Security Hub'
+        WorkflowStatus:
+          - Comparison: 'EQUALS'
+            Value: 'NEW'
+          - Comparison: 'EQUALS'
+            Value: 'NOTIFIED'
+        RecordState:
+          - Comparison: 'EQUALS'
+            Value: 'ACTIVE'
+      GroupByAttribute: 'SeverityLabel'
+  SecurityHubInsightGDSevOpen:
+    Type: 'AWS::SecurityHub::Insight'
+    Properties:
+      Name: 'SHMetrics: GuardDuty Findings by Severity'
+      Filters:
+        ProductName:
+          - Comparison: 'EQUALS'
+            Value: 'GuardDuty'
+        WorkflowStatus:
+          - Comparison: 'EQUALS'
+            Value: 'NEW'
+          - Comparison: 'EQUALS'
+            Value: 'NOTIFIED'
+        RecordState:
+          - Comparison: 'EQUALS'
+            Value: 'ACTIVE'
+      GroupByAttribute: 'SeverityLabel'
+  SecurityHubInsightIAMAASev:
+    Type: 'AWS::SecurityHub::Insight'
+    Properties:
+      Name: 'SHMetrics: IAM AA Findings by Severity'
+      Filters:
+        ProductName:
+          - Comparison: 'EQUALS'
+            Value: 'IAM Access Analyzer'
+        WorkflowStatus:
+          - Comparison: 'EQUALS'
+            Value: 'NEW'
+          - Comparison: 'EQUALS'
+            Value: 'NOTIFIED'
+        RecordState:
+          - Comparison: 'EQUALS'
+            Value: 'ACTIVE'
+      GroupByAttribute: 'SeverityLabel'
+  SecurityHubInsightInspectorSev:
+    Type: 'AWS::SecurityHub::Insight'
+    Properties:
+      Name: 'SHMetrics: Inspecor Findings by Severity'
+      Filters:
+        ProductName:
+          - Comparison: 'EQUALS'
+            Value: 'Inspector'
+        WorkflowStatus:
+          - Comparison: 'EQUALS'
+            Value: 'NEW'
+          - Comparison: 'EQUALS'
+            Value: 'NOTIFIED'
+        RecordState:
+          - Comparison: 'EQUALS'
+            Value: 'ACTIVE'
       GroupByAttribute: 'SeverityLabel'
