@@ -4,26 +4,29 @@ import datetime
 import logging
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 INFILE = "insights.json"
 logging.info("Reading insights from file %s" % INFILE)
 today = datetime.date.today().strftime("%Y%m%d")
 
-namespace = "shmetrics"
-CWM_OUTPUT = True
-CONSOLE_OUT = True
+# CloudWatch Metrics output config
+CWL_namespace = "shmetrics"
+CWM_OUTPUT = False
+
+# CloudWatch Logs output config
 CWL_OUTPUT = True
 CWL_GROUPNAME = "shmetrics"
 CWL_STREAM = "shmetrics"
 
 
 metrics = []
-insight_metrics = {}
+insight_data = {}
 
 
-def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, message):
+def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, insight_data):
+    cw_log_data = []
     # Create a CloudWatch Logs client
     cwlclient = session.client("logs")
 
@@ -31,7 +34,7 @@ def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, message):
     try:
         cwlclient.create_log_group(logGroupName=CWL_GROUPNAME)
     except cwlclient.exceptions.ResourceAlreadyExistsException:
-        logging.info("Log group already exists")
+        logging.warning("Log group already exists")
     except Exception as e:
         logging.error("ERROR: Failed to create log group:", str(e))
 
@@ -41,9 +44,27 @@ def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, message):
             logGroupName=CWL_GROUPNAME, logStreamName=CWL_STREAM
         )
     except cwlclient.exceptions.ResourceAlreadyExistsException:
-        logging.info("Log stream already exists")
+        logging.warning("Log stream already exists")
     except Exception as e:
         logging.error("ERROR: Failed to create log stream:", str(e))
+
+    for KEY in insight_data:
+        if KEY == "INSIGHT_NAME" or KEY == "INSIGHT_ARN": continue
+
+        logging.info("adding data for %s" % KEY)
+        cw_log_data.append(
+            {
+                "shmetrics_schema_version": "1.0",
+                "shmetrics_schema_type": "KVInsight",
+                "MetricName": "Count",
+                "Dimensions": [
+                    {"Name": "Insight", "Value": insight_data["INSIGHT_NAME"]},
+                    {"Name": "Severity", "Value": KEY},
+                ],
+                "Unit": "None",
+                "Value": insight_data[KEY],
+            }
+        )
 
     # Put a log event
     try:
@@ -53,7 +74,7 @@ def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, message):
             logEvents=[
                 {
                     "timestamp": int(datetime.datetime.now().timestamp() * 1000),
-                    "message": message,
+                    "message": json.dumps(cw_log_data),
                 },
             ],
         )
@@ -62,35 +83,32 @@ def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, message):
         logging.error("ERROR: Failed to put log event:", str(e))
 
 
-def put_cwmetrics_data(namespace, insight_metrics):
+def put_cwmetrics_data(CWL_namespace, insight_data):
     # Send the metrics to CloudWatch
     cw_metric_data = []
 
     # The namespace should be the overall tool namespace, plus the insight name to help with filtering and organization and dashboards
-    thisNamespace = namespace + "/" + today + "/" + insight["name"]
+    thisNamespace = CWL_namespace + "/" + today + "/" + insight["name"]
     cwclient = session.client("cloudwatch")
     # Prepare the metrics to be sent to CloudWatch
-    # For each severity level, create a metric
-    # with the count of findings for that severity
-    # and the name of the insight as a dimension
-    # (so we can filter by insight name in CloudWatch)
-    for severity in insight_metrics:
-        logging.info("adding data for %s" % severity)
+    for KEY in insight_data:
+        if KEY == "INSIGHT_NAME" or KEY == "INSIGHT_ARN": continue
+
+        logging.info("adding data for %s" % KEY)
         cw_metric_data.append(
             {
                 "MetricName": "Count",
                 "Dimensions": [
-                    {"Name": "Insight", "Value": insight["name"]},
-                    {"Name": "Severity", "Value": severity},
+                    {"Name": "Insight", "Value": insight_data["INSIGHT_NAME"]},
+                    {"Name": "Severity", "Value": KEY},
                 ],
                 "Unit": "None",
-                "Value": insight_metrics[severity],
+                "Value": insight_data[KEY],
             }
         )
+    logging.info("Metric data:\n%s" % cw_metric_data)
 
     # Send the metrics to CloudWatch
-    # The namespace should be the overall tool namespace, plus the insight name to help with filtering and organization and dashboards
-    thisNamespace = namespace + "/" + today + "/" + insight["name"]
     logging.debug("--- Sending metrics to CloudWatch... Namespace: %s" % thisNamespace)
     try:
         # Send the metrics to CloudWatch
@@ -110,20 +128,22 @@ shclient = session.client("securityhub")
 
 # Open and read the JSON file
 with open("insights.json", "r") as file:
-    logging.info("-- Loading insight check list from file %s" % INFILE)
+    logging.info("Loading insight check list from file %s" % INFILE)
     insight_config = json.load(file)
 
 # Iterate over all the configured insights
 # Access and print the 'name' of each insight
 for insight in insight_config["insights"]:
     if insight["disabled"]:
-        logging.info('\n-- Skipping disabled insight "%s"' % insight["name"])
+        logging.info('Skipping disabled insight "%s"' % insight["name"])
         continue
 
-    logging.info('\n-- Getting results for insight "%s"' % insight["name"])
+    logging.info('Getting results for insight "%s"' % insight["name"])
 
     # Initialize the stats dictionary with default values
-    insight_metrics = {
+    insight_data = {
+        "INSIGHT_NAME": insight["name"],
+        "INSIGHT_ARN": insight["arn"],
         "CRITICAL": 0,
         "HIGH": 0,
         "MEDIUM": 0,
@@ -143,25 +163,23 @@ for insight in insight_config["insights"]:
         logging.debug("%s -> %s" % (result["GroupByAttributeValue"], result["Count"]))
 
         # Populate the stats dictionary with the count of findings for each severity level
-        insight_metrics[result["GroupByAttributeValue"]] = result["Count"]
+        insight_data[result["GroupByAttributeValue"]] = result["Count"]
 
-        logging.debug("Stats: %s" % insight_metrics)
+        logging.debug("Stats: %s" % insight_data)
 
-    if CONSOLE_OUT:
-        logging.info("--- All insight results: %s" % insight_metrics)
+    logging.debug("--- All insight results: %s" % insight_data)
 
     # Deal with CloudWatch Metrics
     if CWM_OUTPUT:
-        put_cwmetrics_data(namespace, insight_metrics)
+        put_cwmetrics_data(CWL_namespace, insight_data)
         logging.debug("Discovered metrics:")
-        logging.debug(metrics)
+        logging.debug(insight_data)
     else:
-        logging.info("--- DEBUG: Skipping CloudWatch Metrics output")
+        logging.info("- Skipping CloudWatch Metrics output")
 
     if CWL_OUTPUT:
-        metrics_to_json = json.dumps(insight_metrics)
-        metrics_to_json.append(insight["name"])
-        put_cwl_data(CWL_GROUPNAME, CWL_STREAM, metrics_to_json)
-        logging.debug(metrics)
+        # metrics_to_json = json.dumps(insight_data)
+        put_cwl_data(CWL_GROUPNAME, CWL_STREAM, insight_data)
+        # logging.debug(insight_data)
     else:
-        logging.info("--- DEBUG: Skipping CloudWatch Logs output")
+        logging.info("- Skipping CloudWatch Logs output")
