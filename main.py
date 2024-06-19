@@ -49,7 +49,8 @@ def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, insight_data):
         logging.error("ERROR: Failed to create log stream:", str(e))
 
     for KEY in insight_data:
-        if KEY == "INSIGHT_NAME" or KEY == "INSIGHT_ARN": continue
+        if KEY == "INSIGHT_NAME" or KEY == "INSIGHT_ARN":
+            continue
 
         logging.info("adding data for %s" % KEY)
         cw_log_data.append(
@@ -92,7 +93,8 @@ def put_cwmetrics_data(CWL_namespace, insight_data):
     cwclient = session.client("cloudwatch")
     # Prepare the metrics to be sent to CloudWatch
     for KEY in insight_data:
-        if KEY == "INSIGHT_NAME" or KEY == "INSIGHT_ARN": continue
+        if KEY == "INSIGHT_NAME" or KEY == "INSIGHT_ARN":
+            continue
 
         logging.info("adding data for %s" % KEY)
         cw_metric_data.append(
