@@ -23,6 +23,7 @@
 				"ZainChen.json",
 				"mohsen1.prettify-json",
 				"kddejong.vscode-cfn-lint"
+				"ms-vscode.makefile-tools"
 			]
 		}
 	},
