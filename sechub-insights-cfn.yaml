@@ -1,9 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Resources:
-  SecurityHubInsightSecHubSevOpen:
+  SecurityHubInsightSecHubSevOpen001:
     Type: 'AWS::SecurityHub::Insight'
     Properties:
-      Name: 'SHMetrics: Security Hub Findings by Severity'
+      Name: 'SHMetrics001: Security Hub Findings by Severity'
       Filters:
         ProductName:
           - Comparison: 'EQUALS'
@@ -17,10 +17,10 @@ Resources:
           - Comparison: 'EQUALS'
             Value: 'ACTIVE'
       GroupByAttribute: 'SeverityLabel'
-  SecurityHubInsightGDSevOpen:
+  SecurityHubInsightGDSevOpen002:
     Type: 'AWS::SecurityHub::Insight'
     Properties:
-      Name: 'SHMetrics: GuardDuty Findings by Severity'
+      Name: 'SHMetrics002: GuardDuty Findings by Severity'
       Filters:
         ProductName:
           - Comparison: 'EQUALS'
@@ -34,10 +34,10 @@ Resources:
           - Comparison: 'EQUALS'
             Value: 'ACTIVE'
       GroupByAttribute: 'SeverityLabel'
-  SecurityHubInsightIAMAASev:
+  SecurityHubInsightIAMAASev003:
     Type: 'AWS::SecurityHub::Insight'
     Properties:
-      Name: 'SHMetrics: IAM AA Findings by Severity'
+      Name: 'SHMetrics003: IAM AA Findings by Severity'
       Filters:
         ProductName:
           - Comparison: 'EQUALS'
@@ -51,10 +51,10 @@ Resources:
           - Comparison: 'EQUALS'
             Value: 'ACTIVE'
       GroupByAttribute: 'SeverityLabel'
-  SecurityHubInsightInspectorSev:
+  SecurityHubInsightInspectorSev004:
     Type: 'AWS::SecurityHub::Insight'
     Properties:
-      Name: 'SHMetrics: Inspecor Findings by Severity'
+      Name: 'SHMetrics004: Inspecor Findings by Severity'
       Filters:
         ProductName:
           - Comparison: 'EQUALS'
@@ -68,3 +68,16 @@ Resources:
           - Comparison: 'EQUALS'
             Value: 'ACTIVE'
       GroupByAttribute: 'SeverityLabel'
+Outputs:
+  SecurityHubInsightSecHubSevOpenArn001:
+    Value: !Ref SecurityHubInsightSecHubSevOpen001
+    Description: 'SHMetrics001: Security Hub Findings by Severity'
+  SecurityHubInsightGDSevOpenArn002:
+    Value: !Ref SecurityHubInsightGDSevOpen002
+    Description: 'SHMetrics002: GuardDuty Findings by Severity'
+  SecurityHubInsightIAMAASevArn003:
+    Value: !Ref SecurityHubInsightIAMAASev003
+    Description: 'SHMetrics003: IAM AA Findings by Severity'
+  SecurityHubInsightInspectorSevArn004:
+    Value: !Ref SecurityHubInsightInspectorSev004
+    Description: 'SHMetrics004: Inspector Findings by Severity'
