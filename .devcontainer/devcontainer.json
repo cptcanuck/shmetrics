@@ -13,7 +13,7 @@
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "pip3 install --user -r requirements.txt",
-    "postCreateCommand": "pip3 install flake8 boto3",
+    "postCreateCommand": "sudo apt-get update && sudo apt-get install -y awscli && pip3 install flake8 boto3 cfn-lint",
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -22,6 +22,7 @@
 				"redhat.vscode-yaml",
 				"ZainChen.json",
 				"mohsen1.prettify-json",
+				"kddejong.vscode-cfn-lint"
 				"ms-vscode.makefile-tools"
 			]
 		}

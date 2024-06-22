@@ -4,10 +4,10 @@ import datetime
 import logging
 
 logging.basicConfig(
-    level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-INFILE = "insights.json"
+INFILE = "insights-test.json"
 logging.info("Reading insights from file %s" % INFILE)
 today = datetime.date.today().strftime("%Y%m%d")
 
