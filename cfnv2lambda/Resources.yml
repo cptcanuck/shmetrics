@@ -1,21 +1,5 @@
 Resources:
-    SHmetricsLambdaDeployBucket:
-        Type: AWS::S3::Bucket
-        Properties:
-          BucketName: 193203723632-shmetrics-lambda
-          VersioningConfiguration:
-            Status: 'Enabled'
-          BucketEncryption:
-            ServerSideEncryptionConfiguration:
-              - ServerSideEncryptionByDefault:
-                  SSEAlgorithm: 'AES256'
-          PublicAccessBlockConfiguration:
-            BlockPublicAcls: true
-            BlockPublicPolicy: true
-            IgnorePublicAcls: true
-            RestrictPublicBuckets: true
-
-    MyLambdaFunction:
+    SHMetricsFunction:
         Type: AWS::Lambda::Function
         Properties:
             FunctionName: shmetrics-lambda
@@ -23,7 +7,7 @@ Resources:
             Runtime: python3.12
             Role: !GetAtt ShmetricsLambdaRole.Arn
             Code:
-                S3Bucket: !Ref SHmetricsLambdaDeployBucket
+                S3Bucket: 193203723632-shmetrics-lambda
                 S3Key: /deploy/shmetrics-LATEST.zip
             Timeout: 60
             MemorySize: 128
@@ -47,7 +31,7 @@ Resources:
                           - Effect: Allow
                             Action:
                                 - s3:GetObject
-                            Resource: !Sub arn:aws:s3:::${SHmetricsLambdaDeployBucket}/*
+                            Resource: !ImportValue SHmetricsBucketArn
                 - PolicyName: shmetrics-cloudwatch
                   PolicyDocument:
                       Version: '2012-10-17'

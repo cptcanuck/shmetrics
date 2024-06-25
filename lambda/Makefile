@@ -1,7 +1,10 @@
 PROJECT = shmetrics
 FUNCTION = $(PROJECT)
+AWSACCOUNT = 193203723632
+S3BUCKET = 193203723632-${PROJECT}-lambda
 REGION = us-east-1
 ENVCHAIN = toddco
+SHMETRICS_DEPLOY_PROFILE = shmetrics-deploy
 
 # Define the directories or files to format and lint
 SRC_DIRS = .
@@ -27,8 +30,11 @@ build: clean
 	cp -r $$VIRTUAL_ENV/lib/python3.12/site-packages/ build/site-packages
 	cd build/site-packages; zip -g -r ../$(FUNCTION).zip . -x "*__pycache__*"
 
+deploy-s3: build
+	aws s3 cp build/$(FUNCTION).zip s3://${S3BUCKET}/deploy/$(FUNCTION)-LATEST.zip --profile ${SHMETRICS_DEPLOY_PROFILE}
+
 deploy: build
-	envchain $(ENVCHAIN) aws lambda update-function-code \
+	aws lambda update-function-code \
 		--region=$(REGION) \
 		--function-name $(FUNCTION) \
 		--zip-file fileb://build/$(FUNCTION).zip \
