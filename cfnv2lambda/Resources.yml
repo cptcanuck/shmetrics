@@ -8,7 +8,7 @@ Resources:
             Role: !GetAtt ShmetricsLambdaRole.Arn
             Code:
                 S3Bucket: 193203723632-shmetrics-lambda
-                S3Key: /deploy/shmetrics-LATEST.zip
+                S3Key: deploy/shmetrics-LATEST.zip
             Timeout: 60
             MemorySize: 128
 
@@ -43,3 +43,13 @@ Resources:
                                 - logs:CreateLogStream
                                 - logs:PutLogEvents
                             Resource: '*'
+                - PolicyName: shmetrics-lambda
+                  PolicyDocument:
+                      Version: '2012-10-17'
+                      Statement:
+                          - Effect: Allow
+                            Action:
+                                - lambda:InvokeFunction
+                            Resource: '*'
+
+
