@@ -1,0 +1,27 @@
+Resources:
+    SHmetricsLambdaDeployBucket:
+        Type: AWS::S3::Bucket
+        Properties:
+          BucketName: 193203723632-shmetrics-lambda
+          VersioningConfiguration:
+            Status: 'Enabled'
+          BucketEncryption:
+            ServerSideEncryptionConfiguration:
+              - ServerSideEncryptionByDefault:
+                  SSEAlgorithm: 'AES256'
+          PublicAccessBlockConfiguration:
+            BlockPublicAcls: true
+            BlockPublicPolicy: true
+            IgnorePublicAcls: true
+            RestrictPublicBuckets: true
+Outputs:
+  SHmetricsLambdaBucketNameOutput:
+    Value: !Ref SHmetricsLambdaDeployBucket
+    Description: The name of the SHmetrics Lambda deployment bucket
+    Export:
+      Name: SHmetricsBucketName
+  SHmetricsLambdaBucketArnOutput:
+    Value: !GetAtt SHmetricsLambdaDeployBucket.Arn
+    Description: The ARN of the SHmetrics Lambda deployment bucket
+    Export:
+      Name: SHmetricsBucketArn

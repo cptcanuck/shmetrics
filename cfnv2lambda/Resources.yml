@@ -1,0 +1,55 @@
+Resources:
+    SHMetricsFunction:
+        Type: AWS::Lambda::Function
+        Properties:
+            FunctionName: shmetrics-lambda
+            Handler: index.handler
+            Runtime: python3.12
+            Role: !GetAtt ShmetricsLambdaRole.Arn
+            Code:
+                S3Bucket: 193203723632-shmetrics-lambda
+                S3Key: deploy/shmetrics-LATEST.zip
+            Timeout: 60
+            MemorySize: 128
+
+    ShmetricsLambdaRole:
+        Type: AWS::IAM::Role
+        Properties:
+            RoleName: shmetrics-lambda-role
+            AssumeRolePolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    - Effect: Allow
+                      Principal:
+                          Service: lambda.amazonaws.com
+                      Action: sts:AssumeRole
+            Policies:
+                - PolicyName: shmetrics-s3
+                  PolicyDocument:
+                      Version: '2012-10-17'
+                      Statement:
+                          - Effect: Allow
+                            Action:
+                                - s3:GetObject
+                            Resource: !ImportValue SHmetricsBucketArn
+                - PolicyName: shmetrics-cloudwatch
+                  PolicyDocument:
+                      Version: '2012-10-17'
+                      Statement:
+                          - Effect: Allow
+                            Action:
+                                - cloudwatch:PutMetricData
+                                - logs:CreateLogGroup
+                                - logs:CreateLogStream
+                                - logs:PutLogEvents
+                            Resource: '*'
+                - PolicyName: shmetrics-lambda
+                  PolicyDocument:
+                      Version: '2012-10-17'
+                      Statement:
+                          - Effect: Allow
+                            Action:
+                                - lambda:InvokeFunction
+                            Resource: '*'
+
+
