@@ -52,4 +52,19 @@ Resources:
                                 - lambda:InvokeFunction
                             Resource: '*'
 
-
+    SHMetricsCronRule:
+        Type: AWS::Events::Rule
+        Properties:
+            Description: "SHMetrics Cron Rule"
+            ScheduleExpression: "cron(0 * * * ? *)"
+            State: ENABLED
+            Targets:
+              - Arn: !GetAtt SHMetricsFunction.Arn
+                Id: "SHMetricsLambdaTarget"
+    SHMetricsCronPermission:
+        Type: AWS::Lambda::Permission
+        Properties:
+            FunctionName: !Ref SHMetricsFunction
+            Action: "lambda:InvokeFunction"
+            Principal: events.amazonaws.com
+            SourceArn: !GetAtt SHMetricsCronRule.Arn
