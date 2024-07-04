@@ -12,7 +12,7 @@ Security Hub Metrics Thingy
 
     * aws cloudformation create-stack --stack-name "SHmetrics-Lambda-s3" --template-body file:///workspaces/shmetrics/cfnv2lambda/Resources-s3.yml --profile shmetrics-deploy
     * aws cloudformation describe-stacks --stack-name SHmetrics-Lambda-s3 --profile shmetrics-deploy
-    * aws cloudformation update-stack --stack-name SH-Insights-s3 --template-body file:///workspaces/shmetrics/cfnv2lambda/Resources-s3.yaml
+    * aws cloudformation update-stack --stack-name SHmetrics-Lambda-s3 --template-body file:///workspaces/shmetrics/cfnv2lambda/Resources-s3.yml
 
 
 Lambda and related resources
