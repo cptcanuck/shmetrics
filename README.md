@@ -17,6 +17,6 @@ Security Hub Metrics Thingy
 
 ## Lambda and related resources
     * aws cloudformation create-stack --stack-name "SHmetrics-Lambda" --template-body file:///workspaces/shmetrics/cfnv2lambda/Resources.yml --capabilities CAPABILITY_NAMED_IAM
-    * aws cloudformation update-stack --stack-name "SHmetrics-Lambda" --template-body file:///workspaces/shmetrics/cfnv2lambda/Resources.yml --profile shmetrics-deploy
+    * aws cloudformation update-stack --stack-name "SHmetrics-Lambda" --template-body file:///workspaces/shmetrics/cfnv2lambda/Resources.yml --capabilities CAPABILITY_NAMED_IAM --profile shmetrics-deploy
     * aws cloudformation describe-stacks --stack-name SHmetrics-Lambda
     * aws cloudformation delete-stack --stack-name SHmetrics-Lambda --profile shmetrics-deploy

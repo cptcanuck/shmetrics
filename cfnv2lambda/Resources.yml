@@ -3,7 +3,7 @@ Resources:
         Type: AWS::Lambda::Function
         Properties:
             FunctionName: shmetrics-lambda
-            Handler: index.handler
+            Handler: main.lambda_handler
             Runtime: python3.12
             Role: !GetAtt ShmetricsLambdaRole.Arn
             Code:
@@ -50,6 +50,14 @@ Resources:
                           - Effect: Allow
                             Action:
                                 - lambda:InvokeFunction
+                            Resource: '*'
+                - PolicyName: shmetrics-securityhub
+                  PolicyDocument:
+                      Version: '2012-10-17'
+                      Statement:
+                          - Effect: Allow
+                            Action:
+                                - securityhub:GetInsightResults
                             Resource: '*'
 
     SHMetricsCronRule:
