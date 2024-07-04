@@ -86,7 +86,7 @@ def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, insight_data, session):
         logging.error("ERROR: Failed to put log event:", str(e))
 
 
-def put_cwmetrics_data(CWM_namespace, insight_data,session):
+def put_cwmetrics_data(CWM_namespace, insight_data, session):
     # Send the metrics to CloudWatch
     cw_metric_data = []
 
@@ -165,7 +165,9 @@ def lambda_handler(event, context):
         )
 
         for result in response["InsightResults"]["ResultValues"]:
-            logging.debug("%s -> %s" % (result["GroupByAttributeValue"], result["Count"]))
+            logging.debug(
+                "%s -> %s" % (result["GroupByAttributeValue"], result["Count"])
+            )
 
             # Populate the stats dictionary with the count of findings for each severity level
             insight_data[result["GroupByAttributeValue"]] = result["Count"]
@@ -179,7 +181,6 @@ def lambda_handler(event, context):
         else:
             logging.info("- Skipping Console output")
 
-
         if CWM_OUTPUT:
             logging.debug("--- Sending metrics to CloudWatch...")
             put_cwmetrics_data(CWM_namespace, insight_data, session)
@@ -190,7 +191,7 @@ def lambda_handler(event, context):
 
         if CWL_OUTPUT:
             logging.debug("--- Sending logs to CloudWatch Logs...")
-            put_cwl_data(CWL_GROUPNAME, CWL_STREAM, insight_data,session)
+            put_cwl_data(CWL_GROUPNAME, CWL_STREAM, insight_data, session)
             # logging.debug(insight_data)
         else:
             logging.info("- Skipping CloudWatch Logs output")
