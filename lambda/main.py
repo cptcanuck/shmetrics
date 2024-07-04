@@ -127,7 +127,7 @@ def lambda_handler(event, context):
 
     # Get Data from Security Hub
     # Create a session using your AWS credentials
-    session = boto3.Session(profile_name="shmetrics")
+    session = boto3.Session()
 
     # create a client to talk to securityhub
     shclient = session.client("securityhub")

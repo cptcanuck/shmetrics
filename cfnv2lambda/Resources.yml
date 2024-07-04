@@ -3,7 +3,7 @@ Resources:
         Type: AWS::Lambda::Function
         Properties:
             FunctionName: shmetrics-lambda
-            Handler: index.handler
+            Handler: main.lambda_handler
             Runtime: python3.12
             Role: !GetAtt ShmetricsLambdaRole.Arn
             Code:
@@ -51,5 +51,28 @@ Resources:
                             Action:
                                 - lambda:InvokeFunction
                             Resource: '*'
+                - PolicyName: shmetrics-securityhub
+                  PolicyDocument:
+                      Version: '2012-10-17'
+                      Statement:
+                          - Effect: Allow
+                            Action:
+                                - securityhub:GetInsightResults
+                            Resource: '*'
 
-
+    SHMetricsCronRule:
+        Type: AWS::Events::Rule
+        Properties:
+            Description: "SHMetrics Cron Rule"
+            ScheduleExpression: "cron(0 * * * ? *)"
+            State: ENABLED
+            Targets:
+              - Arn: !GetAtt SHMetricsFunction.Arn
+                Id: "SHMetricsLambdaTarget"
+    SHMetricsCronPermission:
+        Type: AWS::Lambda::Permission
+        Properties:
+            FunctionName: !Ref SHMetricsFunction
+            Action: "lambda:InvokeFunction"
+            Principal: events.amazonaws.com
+            SourceArn: !GetAtt SHMetricsCronRule.Arn
