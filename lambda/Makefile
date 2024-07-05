@@ -22,7 +22,7 @@ all: build
 clean:
 	rm -rf build
 
-build: clean
+build:
 	mkdir -p build/site-packages
 	zip -r build/$(FUNCTION).zip . -x "*.DS_Store*" "*.git*" "build*" "Makefile" "requirements.txt"
 	python3 -m venv build/$(FUNCTION)
