@@ -11,6 +11,15 @@ Resources:
                 S3Key: deploy/shmetrics-LATEST.zip
             Timeout: 60
             MemorySize: 128
+            Environment:
+                Variables:
+                    CONSOLE_OUTPUT: False
+                    CWM_namespace: "shmetrics"
+                    CWM_OUTPUT: True
+                    CWL_OUTPUT: True
+                    CWL_GROUPNAME: "shmetrics"
+                    CWL_STREAM: "shmetrics"
+                    LOGLEVEL: "INFO"
 
     ShmetricsLambdaRole:
         Type: AWS::IAM::Role

@@ -2,31 +2,48 @@ import boto3
 import json
 import datetime
 import logging
+import os
 
-logging.basicConfig(
-    level=logging.debug, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
 
+if logging.getLogger().hasHandlers():
+    # The Lambda environment pre-configures a handler logging to stderr. If a handler is already configured,
+    # `.basicConfig` does not execute. Thus we set the level directly.
+    # https://github.com/aws/aws-lambda-python-runtime-interface-client/blob/main/awslambdaric/bootstrap.py#L440
+    logging.getLogger().setLevel(LOGLEVEL)
+else:
+    logging.basicConfig(level=LOGLEVEL)
+
+# Configuration
 INFILE = "insights.json"
-today = datetime.date.today().strftime("%Y%m%d")
 
 # Console output config
-CONSOLE_OUTPUT = True
+CONSOLE_OUTPUT = os.environ.get("CONSOLE_OUTPUT", False)
 
 # CloudWatch Metrics output config
-CWM_namespace = "shmetrics"
-CWM_OUTPUT = True
+CWM_NAMESPACE = os.environ.get("CWM_NAMESPACE", "shmetrics")
+CWM_OUTPUT = os.environ.get("CWM_OUTPUT", True)
 
 # CloudWatch Logs output config
-CWL_OUTPUT = False
-CWL_GROUPNAME = "shmetrics"
-CWL_STREAM = "shmetrics"
+CWL_OUTPUT = os.environ.get("CWL_OUTPUT", True)
+CWL_GROUPNAME = os.environ.get("CWL_GROUPNAME", "shmetrics")
+CWL_STREAM = os.environ.get("CWL_STREAM", "shmetrics")
 
+logging.info("----------- Configuration:")
+logging.info("CONSOLE_OUTPUT: %s" % CONSOLE_OUTPUT)
+logging.info("CWM_NAMESPACE: %s" % CWM_NAMESPACE)
+logging.info("CWM_OUTPUT: %s" % CWM_OUTPUT)
+logging.info("CWL_OUTPUT: %s" % CWL_OUTPUT)
+logging.info("CWL_GROUPNAME: %s" % CWL_GROUPNAME)
+logging.info("CWL_STREAM: %s" % CWL_STREAM)
+logging.info("LOGLEVEL: %s" % LOGLEVEL)
+logging.info("-----------")
 
 metrics = []
 insight_data = {}
 
 
+###################################################
 def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, insight_data, session):
     cw_log_data = []
     # Create a CloudWatch Logs client
@@ -36,7 +53,7 @@ def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, insight_data, session):
     try:
         cwlclient.create_log_group(logGroupName=CWL_GROUPNAME)
     except cwlclient.exceptions.ResourceAlreadyExistsException:
-        logging.warning("Log group already exists")
+        logging.debug("Log group already exists")
     except Exception as e:
         logging.error("ERROR: Failed to create log group:", str(e))
 
@@ -46,7 +63,7 @@ def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, insight_data, session):
             logGroupName=CWL_GROUPNAME, logStreamName=CWL_STREAM
         )
     except cwlclient.exceptions.ResourceAlreadyExistsException:
-        logging.warning("Log stream already exists")
+        logging.debug("Log stream already exists")
     except Exception as e:
         logging.error("ERROR: Failed to create log stream:", str(e))
 
@@ -54,7 +71,7 @@ def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, insight_data, session):
         if KEY == "INSIGHT_NAME" or KEY == "INSIGHT_ARN":
             continue
 
-        logging.info("adding data for %s -> %s" % KEY, insight_data[KEY])
+        logging.debug("adding data for %s -> %s" % (KEY, insight_data[KEY]))
         cw_log_data.append(
             {
                 "shmetrics_schema_version": "1.0",
@@ -81,23 +98,26 @@ def put_cwl_data(CWL_GROUPNAME, CWL_STREAM, insight_data, session):
                 },
             ],
         )
-        logging.info("---- Log event sent successfully!")
+        logging.info("-- Log writen to CWL successfully!")
     except Exception as e:
-        logging.error("ERROR: Failed to put log event:", str(e))
+        logging.error("Failed to put log event:", str(e))
 
 
-def put_cwmetrics_data(CWM_namespace, insight_data, session):
+def put_cwmetrics_data(CWM_NAMESPACE, insight_data, session):
     # Send the metrics to CloudWatch
     cw_metric_data = []
 
-    # The namespace should be the overall tool namespace, plus the insight name to help with filtering and organization and dashboards
-    cwclient = session.client("cloudwatch")
+    try:
+        cwclient = session.client("cloudwatch")
+    except Exception as e:
+        logging.error("ERROR: Failed to create CloudWatch client:", str(e))
+
     # Prepare the metrics to be sent to CloudWatch
     for KEY in insight_data:
         if KEY == "INSIGHT_NAME" or KEY == "INSIGHT_ARN":
             continue
 
-        logging.info("adding data for %s" % KEY)
+        logging.debug("adding data for %s" % KEY)
         cw_metric_data.append(
             {
                 "MetricName": "Count",
@@ -109,16 +129,16 @@ def put_cwmetrics_data(CWM_namespace, insight_data, session):
                 "Value": insight_data[KEY],
             }
         )
-    logging.info("Metric data:\n%s" % cw_metric_data)
+    logging.debug("Metric data:\n%s" % cw_metric_data)
 
     # Send the metrics to CloudWatch
-    thisNamespace = CWM_namespace + "/" + today + "/" + insight_data["INSIGHT_NAME"]
+    thisNamespace = CWM_NAMESPACE + "/" + insight_data["INSIGHT_NAME"]
 
-    logging.debug("--- Sending metrics to CloudWatch... Namespace: %s" % thisNamespace)
+    logging.debug("- Sending metrics to CloudWatch... Namespace: %s" % thisNamespace)
     try:
         # Send the metrics to CloudWatch
         cwclient.put_metric_data(Namespace=thisNamespace, MetricData=cw_metric_data)
-        logging.info("---- Metrics sent successfully!")
+        logging.info("-- Metrics sent successfully!")
     except Exception as e:
         logging.error("ERROR: Failed to send metrics:", str(e))
 
@@ -160,8 +180,7 @@ def lambda_handler(event, context):
         response = shclient.get_insight_results(InsightArn=insight["arn"])
 
         logging.debug(
-            "--- DEBUG: Result from get_insight_results for %s - %s"
-            % (insight["arn"], response)
+            "Result from get_insight_results for %s - %s" % (insight["arn"], response)
         )
 
         for result in response["InsightResults"]["ResultValues"]:
@@ -175,23 +194,22 @@ def lambda_handler(event, context):
             logging.debug("Stats: %s" % insight_data)
 
         # Deal with CloudWatch Metrics
-        if CONSOLE_OUTPUT:
-            logging.debug("--- Outputting data to console...")
+        if CONSOLE_OUTPUT.lower() == "true" or CONSOLE_OUTPUT is True:
+            logging.info("- Outputting data to console...")
             print(json.dumps(insight_data, indent=4))
         else:
-            logging.info("- Skipping Console output")
+            logging.debug("- Skipping Console output")
 
-        if CWM_OUTPUT:
-            logging.debug("--- Sending metrics to CloudWatch...")
-            put_cwmetrics_data(CWM_namespace, insight_data, session)
-            logging.debug("Discovered metrics:")
+        if CWM_OUTPUT.lower() == "true" or CWM_OUTPUT is True:
+            logging.info("- Sending metrics to CloudWatch metrics...")
             logging.debug(insight_data)
+            put_cwmetrics_data(CWM_NAMESPACE, insight_data, session)
         else:
-            logging.info("- Skipping CloudWatch Metrics output")
+            logging.debug("- Skipping CloudWatch Metrics output")
 
-        if CWL_OUTPUT:
-            logging.debug("--- Sending logs to CloudWatch Logs...")
+        if CWL_OUTPUT.lower() == "true" or CWL_OUTPUT is True:
+            logging.info("- Sending logs to CloudWatch Logs...")
+            logging.debug(insight_data)
             put_cwl_data(CWL_GROUPNAME, CWL_STREAM, insight_data, session)
-            # logging.debug(insight_data)
         else:
-            logging.info("- Skipping CloudWatch Logs output")
+            logging.debug("- Skipping CloudWatch Logs output")

@@ -22,7 +22,7 @@ all: build
 clean:
 	rm -rf build
 
-build: clean
+build:
 	mkdir -p build/site-packages
 	zip -r build/$(FUNCTION).zip . -x "*.DS_Store*" "*.git*" "build*" "Makefile" "requirements.txt"
 	python3 -m venv build/$(FUNCTION)
@@ -52,6 +52,8 @@ distrib: deploy-s3
 		--publish \
 		--profile ${SHMETRICS_DEPLOY_PROFILE}
 
+test:
+	python-lambda-local -t 30 -f lambda_handler -e tests/python-lambda-local/env.json main.py tests/python-lambda-local/test_event.json
 
 # Target to format code
 format:
