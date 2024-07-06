@@ -4,7 +4,7 @@ import datetime
 import logging
 import os
 
-LOGLEVEL = os.environ.get('LOGLEVEL', 'WARNING').upper()
+LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
 
 if logging.getLogger().hasHandlers():
     # The Lambda environment pre-configures a handler logging to stderr. If a handler is already configured,
@@ -30,7 +30,7 @@ CWL_GROUPNAME = os.environ.get("CWL_GROUPNAME", "shmetrics")
 CWL_STREAM = os.environ.get("CWL_STREAM", "shmetrics")
 
 logging.info("----------- Configuration:")
-logging.info("CONSOLE_OUTPUT: %s" % CONSOLE_OUTPUT) 
+logging.info("CONSOLE_OUTPUT: %s" % CONSOLE_OUTPUT)
 logging.info("CWM_NAMESPACE: %s" % CWM_NAMESPACE)
 logging.info("CWM_OUTPUT: %s" % CWM_OUTPUT)
 logging.info("CWL_OUTPUT: %s" % CWL_OUTPUT)
@@ -180,8 +180,7 @@ def lambda_handler(event, context):
         response = shclient.get_insight_results(InsightArn=insight["arn"])
 
         logging.debug(
-            "Result from get_insight_results for %s - %s"
-            % (insight["arn"], response)
+            "Result from get_insight_results for %s - %s" % (insight["arn"], response)
         )
 
         for result in response["InsightResults"]["ResultValues"]:
@@ -195,24 +194,22 @@ def lambda_handler(event, context):
             logging.debug("Stats: %s" % insight_data)
 
         # Deal with CloudWatch Metrics
-        if CONSOLE_OUTPUT.lower() == "true" or CONSOLE_OUTPUT == True:
+        if CONSOLE_OUTPUT.lower() == "true" or CONSOLE_OUTPUT is True:
             logging.info("- Outputting data to console...")
             print(json.dumps(insight_data, indent=4))
         else:
             logging.debug("- Skipping Console output")
 
-        if CWM_OUTPUT.lower() == "true" or CWM_OUTPUT == True:
+        if CWM_OUTPUT.lower() == "true" or CWM_OUTPUT is True:
             logging.info("- Sending metrics to CloudWatch metrics...")
             logging.debug(insight_data)
             put_cwmetrics_data(CWM_NAMESPACE, insight_data, session)
         else:
             logging.debug("- Skipping CloudWatch Metrics output")
 
-        if CWL_OUTPUT.lower() == "true" or CWL_OUTPUT == True:
+        if CWL_OUTPUT.lower() == "true" or CWL_OUTPUT is True:
             logging.info("- Sending logs to CloudWatch Logs...")
             logging.debug(insight_data)
             put_cwl_data(CWL_GROUPNAME, CWL_STREAM, insight_data, session)
         else:
             logging.debug("- Skipping CloudWatch Logs output")
-
-
