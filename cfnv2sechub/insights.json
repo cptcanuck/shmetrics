@@ -1,0 +1,28 @@
+{
+    "insights": [
+        {
+            "id": "SecurityHubInsightSecHubSevOpenArn001",
+            "name": "SHMetrics001: Security Hub Findings by Severity",
+            "disabled": false,
+            "arn": "arn:aws:securityhub:us-east-1:193203723632:insight/193203723632/custom/76a7c5bc-e06c-4d17-897e-c4a1fb2810d9"
+        },
+        {
+            "id": "SecurityHubInsightInspectorSevArn004",
+            "name": "SHMetrics004: Inspector Findings by Severity",
+            "disabled": false,
+            "arn": "arn:aws:securityhub:us-east-1:193203723632:insight/193203723632/custom/acaa1b2a-bee7-479d-a167-2612342adf45"
+        },
+        {
+            "id": "SecurityHubInsightGDSevOpenArn002",
+            "name": "SHMetrics002: GuardDuty Findings by Severity",
+            "disabled": false,
+            "arn": "arn:aws:securityhub:us-east-1:193203723632:insight/193203723632/custom/e2d207cb-b61c-4ee6-9386-c2ff3edb469b"
+        },
+        {
+            "id": "SecurityHubInsightIAMAASevArn003",
+            "name": "SHMetrics003: IAM AA Findings by Severity",
+            "disabled": false,
+            "arn": "arn:aws:securityhub:us-east-1:193203723632:insight/193203723632/custom/26c8ed05-cbff-48d2-be34-f8fc280c0ccf"
+        }
+    ]
+}

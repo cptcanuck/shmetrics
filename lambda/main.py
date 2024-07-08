@@ -15,7 +15,13 @@ else:
     logging.basicConfig(level=LOGLEVEL)
 
 # Configuration
-INFILE = "insights.json"
+#INFILE = "insights.json"
+
+LAMBDA_S3_BUCKET = os.environ.get("LAMBDA_S3_BUCKET", "193203723632-shmetrics-lambda")
+LAMBDA_S3_KEY = os.environ.get("LAMBDA_CONFIG_FILE", "config/insights.json")
+LAMBDA_S3_CONFIG = "s3://" + LAMBDA_S3_BUCKET + "/" + LAMBDA_S3_KEY
+
+SHMETRICS_CONFIG = os.environ.get("SHMETRICS_CONFIG", LAMBDA_S3_KEY)
 
 # Console output config
 CONSOLE_OUTPUT = os.environ.get("CONSOLE_OUTPUT", False)
@@ -37,6 +43,9 @@ logging.info("CWL_OUTPUT: %s" % CWL_OUTPUT)
 logging.info("CWL_GROUPNAME: %s" % CWL_GROUPNAME)
 logging.info("CWL_STREAM: %s" % CWL_STREAM)
 logging.info("LOGLEVEL: %s" % LOGLEVEL)
+logging.info("LAMBDA_S3_BUCKET: %s" % LAMBDA_S3_BUCKET)
+logging.info("LAMBDA_S3_KEY: %s" % LAMBDA_S3_KEY)
+logging.info("LAMBDA_S3_CONFIG: s3://" + LAMBDA_S3_BUCKET + "/" + LAMBDA_S3_KEY)
 logging.info("-----------")
 
 metrics = []
@@ -142,8 +151,28 @@ def put_cwmetrics_data(CWM_NAMESPACE, insight_data, session):
     except Exception as e:
         logging.error("ERROR: Failed to send metrics:", str(e))
 
+def get_insight_config(LAMBDA_S3_BUCKET, LAMBDA_S3_KEY, SHMETRICS_CONFIG):
 
-def lambda_handler(event, context):
+    # Get the insight configuration from S3
+    s3 = boto3.client("s3")
+    try:
+        logging.info("Getting insight configuration from S3 (%s) and writing to %s" % (LAMBDA_S3_CONFIG,SHMETRICS_CONFIG))
+        #s3.download_file(LAMBDA_S3_BUCKET, LAMBDA_S3_PREFIX + "/" + LAMBDA_S3_KEY, SHMETRICS_CONFIG)
+        s3.download_file("193203723632-shmetrics-lambda", "config/insights.json", "insights.json")
+    except Exception as e:
+        logging.error("ERROR: Failed to download configuration file from S3:", str(e))
+
+
+    #check to make sure the config file actually exists before declaring we're good
+    if not os.path.isfile("insights.json"):
+        logging.info("Configuration file %s does not exist in the working directory" % SHMETRICS_CONFIG)
+    else:
+        logging.info("Configuration file %s found in the working directory" % SHMETRICS_CONFIG)    
+
+    
+
+# Main function
+def insight_gatherer(SHMETRICS_CONFIG=SHMETRICS_CONFIG, CONSOLE_OUTPUT=CONSOLE_OUTPUT, CWM_OUTPUT=CWM_OUTPUT, CWL_OUTPUT=CWL_OUTPUT, CWL_GROUPNAME=CWL_GROUPNAME, CWL_STREAM=CWL_STREAM, CWM_NAMESPACE=CWM_NAMESPACE):
 
     # Get Data from Security Hub
     # Create a session using your AWS credentials
@@ -153,8 +182,8 @@ def lambda_handler(event, context):
     shclient = session.client("securityhub")
 
     # Open and read the JSON file
-    with open(INFILE, "r") as file:
-        logging.info("Loading insight check list from file %s" % INFILE)
+    with open(SHMETRICS_CONFIG, "r") as file:
+        logging.info("Loading insight check list from file %s" % SHMETRICS_CONFIG)
         insight_config = json.load(file)
 
     # Iterate over all the configured insights
@@ -213,3 +242,8 @@ def lambda_handler(event, context):
             put_cwl_data(CWL_GROUPNAME, CWL_STREAM, insight_data, session)
         else:
             logging.debug("- Skipping CloudWatch Logs output")
+
+
+def lambda_handler(event, context):
+    get_insight_config(LAMBDA_S3_BUCKET, LAMBDA_S3_KEY, SHMETRICS_CONFIG)
+    #insight_gatherer()
