@@ -14,7 +14,7 @@ def get_cloudformation_outputs(stack_name):
         # Create a dictionary to store the output values
         output_values = {}
         output_descriptin_values = {}
-        print ("Getting outputs from CFN stack: ", stack_name)
+        print("Getting outputs from CFN stack: ", stack_name)
         # Extract the output key-value pairs
         for output in stack_outputs:
             output_key = output["OutputKey"]
@@ -22,7 +22,14 @@ def get_cloudformation_outputs(stack_name):
             output_description = output["Description"]
             output_values[output_key] = output_value
             output_descriptin_values[output_key] = output_description
-            print ("Output Key: ", output_key, " Output Value: ", output_value, " Output Description: ", output_description)
+            print(
+                "Output Key: ",
+                output_key,
+                " Output Value: ",
+                output_value,
+                " Output Description: ",
+                output_description,
+            )
 
         return output_values, output_descriptin_values
 
@@ -54,7 +61,7 @@ def write_outputs_to_json(outputs, output_descriptions):
 
 
 stack_name = "SH-Insights"
-print ("Getting outputs for stack: ", stack_name)
+print("Getting outputs for stack: ", stack_name)
 
 # Get the CloudFormation stack outputs
 outputs, output_descriptions = get_cloudformation_outputs(stack_name)
