@@ -21,7 +21,7 @@ LAMBDA_S3_BUCKET = os.environ.get("LAMBDA_S3_BUCKET", "193203723632-shmetrics-la
 LAMBDA_S3_KEY = os.environ.get("LAMBDA_CONFIG_FILE", "config/insights.json")
 LAMBDA_S3_CONFIG = "s3://" + LAMBDA_S3_BUCKET + "/" + LAMBDA_S3_KEY
 
-SHMETRICS_CONFIG = os.environ.get("SHMETRICS_CONFIG", LAMBDA_S3_KEY)
+SHMETRICS_CONFIG = os.environ.get("SHMETRICS_CONFIG", "insights.json")
 
 # Console output config
 CONSOLE_OUTPUT = os.environ.get("CONSOLE_OUTPUT", False)
@@ -46,6 +46,7 @@ logging.info("LOGLEVEL: %s" % LOGLEVEL)
 logging.info("LAMBDA_S3_BUCKET: %s" % LAMBDA_S3_BUCKET)
 logging.info("LAMBDA_S3_KEY: %s" % LAMBDA_S3_KEY)
 logging.info("LAMBDA_S3_CONFIG: s3://" + LAMBDA_S3_BUCKET + "/" + LAMBDA_S3_KEY)
+logging.info("SHMETRICS_CONFIG: %s" % SHMETRICS_CONFIG)
 logging.info("-----------")
 
 metrics = []
@@ -151,7 +152,7 @@ def put_cwmetrics_data(CWM_NAMESPACE, insight_data, session):
     except Exception as e:
         logging.error("ERROR: Failed to send metrics:", str(e))
 
-def get_insight_config(LAMBDA_S3_BUCKET, LAMBDA_S3_KEY, SHMETRICS_CONFIG):
+def get_insight_config_s3(LAMBDA_S3_BUCKET, LAMBDA_S3_KEY, SHMETRICS_CONFIG):
 
     # Get the insight configuration from S3
     s3 = boto3.client("s3")
@@ -162,14 +163,10 @@ def get_insight_config(LAMBDA_S3_BUCKET, LAMBDA_S3_KEY, SHMETRICS_CONFIG):
     except Exception as e:
         logging.error("ERROR: Failed to download configuration file from S3:", str(e))
 
-
     #check to make sure the config file actually exists before declaring we're good
     if not os.path.isfile("insights.json"):
         logging.info("Configuration file %s does not exist in the working directory" % SHMETRICS_CONFIG)
-    else:
-        logging.info("Configuration file %s found in the working directory" % SHMETRICS_CONFIG)    
-
-    
+        raise Exception("Configuration file %s does not exist in the working directory" % SHMETRICS_CONFIG)
 
 # Main function
 def insight_gatherer(SHMETRICS_CONFIG=SHMETRICS_CONFIG, CONSOLE_OUTPUT=CONSOLE_OUTPUT, CWM_OUTPUT=CWM_OUTPUT, CWL_OUTPUT=CWL_OUTPUT, CWL_GROUPNAME=CWL_GROUPNAME, CWL_STREAM=CWL_STREAM, CWM_NAMESPACE=CWM_NAMESPACE):
@@ -245,5 +242,5 @@ def insight_gatherer(SHMETRICS_CONFIG=SHMETRICS_CONFIG, CONSOLE_OUTPUT=CONSOLE_O
 
 
 def lambda_handler(event, context):
-    get_insight_config(LAMBDA_S3_BUCKET, LAMBDA_S3_KEY, SHMETRICS_CONFIG)
-    #insight_gatherer()
+    get_insight_config_s3(LAMBDA_S3_BUCKET, LAMBDA_S3_KEY, SHMETRICS_CONFIG)
+    insight_gatherer()
