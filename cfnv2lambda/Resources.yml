@@ -20,6 +20,10 @@ Resources:
                     CWL_GROUPNAME: "shmetrics"
                     CWL_STREAM: "shmetrics"
                     LOGLEVEL: "INFO"
+                    LAMBDA_S3_BUCKET: !ImportValue SHmetricsBucketName
+                    LAMBDA_S3_PREFIX: "config"
+                    LAMBDA_S3_KEY: "insights.json"
+                    SHMETRICS_CONFIG: "insights.json"
 
     ShmetricsLambdaRole:
         Type: AWS::IAM::Role
