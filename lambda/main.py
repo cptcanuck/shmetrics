@@ -15,7 +15,7 @@ else:
     logging.basicConfig(level=LOGLEVEL)
 
 # Configuration
-#INFILE = "insights.json"
+# INFILE = "insights.json"
 
 LAMBDA_S3_BUCKET = os.environ.get("LAMBDA_S3_BUCKET", "193203723632-shmetrics-lambda")
 LAMBDA_S3_KEY = os.environ.get("LAMBDA_CONFIG_FILE", "config/insights.json")
@@ -35,19 +35,19 @@ CWL_OUTPUT = os.environ.get("CWL_OUTPUT", True)
 CWL_GROUPNAME = os.environ.get("CWL_GROUPNAME", "shmetrics")
 CWL_STREAM = os.environ.get("CWL_STREAM", "shmetrics")
 
-logging.info("----------- Configuration:")
-logging.info("CONSOLE_OUTPUT: %s" % CONSOLE_OUTPUT)
-logging.info("CWM_NAMESPACE: %s" % CWM_NAMESPACE)
-logging.info("CWM_OUTPUT: %s" % CWM_OUTPUT)
-logging.info("CWL_OUTPUT: %s" % CWL_OUTPUT)
-logging.info("CWL_GROUPNAME: %s" % CWL_GROUPNAME)
-logging.info("CWL_STREAM: %s" % CWL_STREAM)
-logging.info("LOGLEVEL: %s" % LOGLEVEL)
-logging.info("LAMBDA_S3_BUCKET: %s" % LAMBDA_S3_BUCKET)
-logging.info("LAMBDA_S3_KEY: %s" % LAMBDA_S3_KEY)
-logging.info("LAMBDA_S3_CONFIG: s3://" + LAMBDA_S3_BUCKET + "/" + LAMBDA_S3_KEY)
-logging.info("SHMETRICS_CONFIG: %s" % SHMETRICS_CONFIG)
-logging.info("-----------")
+logging.debug("----------- Configuration:")
+logging.debug("CONSOLE_OUTPUT: %s" % CONSOLE_OUTPUT)
+logging.debug("CWM_NAMESPACE: %s" % CWM_NAMESPACE)
+logging.debug("CWM_OUTPUT: %s" % CWM_OUTPUT)
+logging.debug("CWL_OUTPUT: %s" % CWL_OUTPUT)
+logging.debug("CWL_GROUPNAME: %s" % CWL_GROUPNAME)
+logging.debug("CWL_STREAM: %s" % CWL_STREAM)
+logging.debug("LOGLEVEL: %s" % LOGLEVEL)
+logging.debug("LAMBDA_S3_BUCKET: %s" % LAMBDA_S3_BUCKET)
+logging.debug("LAMBDA_S3_KEY: %s" % LAMBDA_S3_KEY)
+logging.debug("LAMBDA_S3_CONFIG: s3://" + LAMBDA_S3_BUCKET + "/" + LAMBDA_S3_KEY)
+logging.debug("SHMETRICS_CONFIG: %s" % SHMETRICS_CONFIG)
+logging.debug("-----------")
 
 metrics = []
 insight_data = {}
@@ -152,24 +152,45 @@ def put_cwmetrics_data(CWM_NAMESPACE, insight_data, session):
     except Exception as e:
         logging.error("ERROR: Failed to send metrics:", str(e))
 
+
 def get_insight_config_s3(LAMBDA_S3_BUCKET, LAMBDA_S3_KEY, SHMETRICS_CONFIG):
 
     # Get the insight configuration from S3
     s3 = boto3.client("s3")
     try:
-        logging.info("Getting insight configuration from S3 (%s) and writing to %s" % (LAMBDA_S3_CONFIG,SHMETRICS_CONFIG))
-        #s3.download_file(LAMBDA_S3_BUCKET, LAMBDA_S3_PREFIX + "/" + LAMBDA_S3_KEY, SHMETRICS_CONFIG)
-        s3.download_file("193203723632-shmetrics-lambda", "config/insights.json", "insights.json")
+        logging.info(
+            "Getting insight configuration from S3 (%s) and writing to %s"
+            % (LAMBDA_S3_CONFIG, SHMETRICS_CONFIG)
+        )
+        # s3.download_file(LAMBDA_S3_BUCKET, LAMBDA_S3_PREFIX + "/" + LAMBDA_S3_KEY, SHMETRICS_CONFIG)
+        s3.download_file(
+            "193203723632-shmetrics-lambda", "config/insights.json", "insights.json"
+        )
     except Exception as e:
         logging.error("ERROR: Failed to download configuration file from S3:", str(e))
 
-    #check to make sure the config file actually exists before declaring we're good
+    # check to make sure the config file actually exists before declaring we're good
     if not os.path.isfile("insights.json"):
-        logging.info("Configuration file %s does not exist in the working directory" % SHMETRICS_CONFIG)
-        raise Exception("Configuration file %s does not exist in the working directory" % SHMETRICS_CONFIG)
+        logging.info(
+            "Configuration file %s does not exist in the working directory"
+            % SHMETRICS_CONFIG
+        )
+        raise Exception(
+            "Configuration file %s does not exist in the working directory"
+            % SHMETRICS_CONFIG
+        )
+
 
 # Main function
-def insight_gatherer(SHMETRICS_CONFIG=SHMETRICS_CONFIG, CONSOLE_OUTPUT=CONSOLE_OUTPUT, CWM_OUTPUT=CWM_OUTPUT, CWL_OUTPUT=CWL_OUTPUT, CWL_GROUPNAME=CWL_GROUPNAME, CWL_STREAM=CWL_STREAM, CWM_NAMESPACE=CWM_NAMESPACE):
+def insight_gatherer(
+    SHMETRICS_CONFIG=SHMETRICS_CONFIG,
+    CONSOLE_OUTPUT=CONSOLE_OUTPUT,
+    CWM_OUTPUT=CWM_OUTPUT,
+    CWL_OUTPUT=CWL_OUTPUT,
+    CWL_GROUPNAME=CWL_GROUPNAME,
+    CWL_STREAM=CWL_STREAM,
+    CWM_NAMESPACE=CWM_NAMESPACE,
+):
 
     # Get Data from Security Hub
     # Create a session using your AWS credentials
