@@ -17,11 +17,22 @@ else:
 # Configuration
 # INFILE = "insights.json"
 
-LAMBDA_S3_BUCKET = os.environ.get("LAMBDA_S3_BUCKET", "193203723632-shmetrics-lambda")
-LAMBDA_S3_KEY = os.environ.get("LAMBDA_CONFIG_FILE", "config/insights.json")
-LAMBDA_S3_CONFIG = "s3://" + LAMBDA_S3_BUCKET + "/" + LAMBDA_S3_KEY
+CONFIG_SOURCE = os.environ.get("CONFIG_SOURCE", "S3")
+if CONFIG_SOURCE == "S3":
+    LAMBDA_S3_BUCKET = os.environ.get("LAMBDA_S3_BUCKET", "193203723632-shmetrics-lambda")
+    LAMBDA_S3_KEY = os.environ.get("LAMBDA_CONFIG_FILE", "config/insights.json")
+    LAMBDA_S3_CONFIG = "s3://" + LAMBDA_S3_BUCKET + "/" + LAMBDA_S3_KEY
+#elif CONFIG_SOURCE == "LOCAL":
+#    INFILE = "insights.json"
+elif CONFIG_SOURCE == "CLOUDFORMATION":
+    CFN_STACK_NAME = os.environ.get("CFN_STACK_NAME","SH-Insights")
+else:
+    logging.error("Invalid CONFIG_SOURCE value: %s" % CONFIG_SOURCE)
+    raise Exception("Invalid CONFIG_SOURCE value: %s" % CONFIG_SOURCE)
 
-SHMETRICS_CONFIG = os.environ.get("SHMETRICS_CONFIG", "insights.json")
+
+
+LOCAL_SHMETRICS_CONFIG_FILE = os.environ.get("SHMETRICS_CONFIG", "insights.json")
 
 # Console output config
 CONSOLE_OUTPUT = os.environ.get("CONSOLE_OUTPUT", False)
@@ -46,11 +57,12 @@ logging.debug("LOGLEVEL: %s" % LOGLEVEL)
 logging.debug("LAMBDA_S3_BUCKET: %s" % LAMBDA_S3_BUCKET)
 logging.debug("LAMBDA_S3_KEY: %s" % LAMBDA_S3_KEY)
 logging.debug("LAMBDA_S3_CONFIG: s3://" + LAMBDA_S3_BUCKET + "/" + LAMBDA_S3_KEY)
-logging.debug("SHMETRICS_CONFIG: %s" % SHMETRICS_CONFIG)
+logging.debug("SHMETRICS_CONFIG: %s" % LOCAL_SHMETRICS_CONFIG_FILE)
 logging.debug("-----------")
 
 metrics = []
 insight_data = {}
+insight_config = {}
 
 
 ###################################################
@@ -153,15 +165,15 @@ def put_cwmetrics_data(CWM_NAMESPACE, insight_data, session):
         logging.error("ERROR: Failed to send metrics:", str(e))
 
 
-def get_insight_config_s3(LAMBDA_S3_BUCKET, LAMBDA_S3_KEY, SHMETRICS_CONFIG):
+def get_insight_config_s3(LAMBDA_S3_BUCKET=LAMBDA_S3_BUCKET, LAMBDA_S3_KEY=LAMBDA_S3_KEY, LOCAL_SHMETRICS_CONFIG_FILE=LOCAL_SHMETRICS_CONFIG_FILE):
 
     # Get the insight configuration from S3
     s3 = boto3.client("s3")
+    logging.info(
+        "Getting insight configuration from S3 (%s) and writing to %s"
+        % (LAMBDA_S3_CONFIG, LOCAL_SHMETRICS_CONFIG_FILE)
+    )
     try:
-        logging.info(
-            "Getting insight configuration from S3 (%s) and writing to %s"
-            % (LAMBDA_S3_CONFIG, SHMETRICS_CONFIG)
-        )
         # s3.download_file(LAMBDA_S3_BUCKET, LAMBDA_S3_PREFIX + "/" + LAMBDA_S3_KEY, SHMETRICS_CONFIG)
         s3.download_file(
             "193203723632-shmetrics-lambda", "config/insights.json", "insights.json"
@@ -170,26 +182,26 @@ def get_insight_config_s3(LAMBDA_S3_BUCKET, LAMBDA_S3_KEY, SHMETRICS_CONFIG):
         logging.error("ERROR: Failed to download configuration file from S3:", str(e))
 
     # check to make sure the config file actually exists before declaring we're good
-    if not os.path.isfile("insights.json"):
+    if not os.path.isfile(LOCAL_SHMETRICS_CONFIG_FILE):
         logging.info(
             "Configuration file %s does not exist in the working directory"
-            % SHMETRICS_CONFIG
+            % LOCAL_SHMETRICS_CONFIG_FILE
         )
         raise Exception(
             "Configuration file %s does not exist in the working directory"
-            % SHMETRICS_CONFIG
+            % LOCAL_SHMETRICS_CONFIG_FILE
         )
 
 
 # Main function
 def insight_gatherer(
-    SHMETRICS_CONFIG=SHMETRICS_CONFIG,
     CONSOLE_OUTPUT=CONSOLE_OUTPUT,
     CWM_OUTPUT=CWM_OUTPUT,
     CWL_OUTPUT=CWL_OUTPUT,
     CWL_GROUPNAME=CWL_GROUPNAME,
     CWL_STREAM=CWL_STREAM,
     CWM_NAMESPACE=CWM_NAMESPACE,
+    insight_config=None
 ):
 
     # Get Data from Security Hub
@@ -199,12 +211,7 @@ def insight_gatherer(
     # create a client to talk to securityhub
     shclient = session.client("securityhub")
 
-    # Open and read the JSON file
-    with open(SHMETRICS_CONFIG, "r") as file:
-        logging.info("Loading insight check list from file %s" % SHMETRICS_CONFIG)
-        insight_config = json.load(file)
-
-    # Iterate over all the configured insights
+    # Iterate over all the passed insights
     for insight in insight_config["insights"]:
         if insight["disabled"]:
             logging.info('Skipping disabled insight "%s"' % insight["name"])
@@ -261,7 +268,24 @@ def insight_gatherer(
         else:
             logging.debug("- Skipping CloudWatch Logs output")
 
+def load_insight_config_from_file(LOCAL_SHMETRICS_CONFIG_FILE):
+    logging.info("Loading insight configuration from %s" % LOCAL_SHMETRICS_CONFIG_FILE)
 
-def lambda_handler(event, context):
-    get_insight_config_s3(LAMBDA_S3_BUCKET, LAMBDA_S3_KEY, SHMETRICS_CONFIG)
-    insight_gatherer()
+    try:
+        with open(LOCAL_SHMETRICS_CONFIG_FILE) as json_file:
+            insight_config = json.load(json_file)
+    except FileNotFoundError:
+        logging.error("ERROR: Configuration file not found: %s" % LOCAL_SHMETRICS_CONFIG_FILE)
+        raise
+    except Exception as e:
+        logging.error("ERROR: Failed to load insight configuration:", str(e))
+        raise
+    return insight_config
+
+def lambda_handler(event, context, insight_config=insight_config):
+    if CONFIG_SOURCE == "S3":
+        get_insight_config_s3(LAMBDA_S3_BUCKET, LAMBDA_S3_KEY, insight_config)
+        insight_config = load_insight_config_from_file(LOCAL_SHMETRICS_CONFIG_FILE)
+    elif CONFIG_SOURCE == "CLOUDFORMATION":
+        insight_config = get_insight_config_cfn(CFN_STACK_NAME=CFN_STACK_NAME)
+    insight_gatherer(insight_config=insight_config)
