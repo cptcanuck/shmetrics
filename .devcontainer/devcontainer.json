@@ -13,7 +13,7 @@
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "pip3 install --user -r requirements.txt",
-    "postCreateCommand": "sudo apt-get update && sudo apt-get install -y awscli && pip3 install flake8 boto3 cfn-lint",
+    "postCreateCommand": "sudo apt-get update && sudo apt-get install -y awscli && pip3 install flake8 boto3 cfn-lint python-lambda-local",
 	"customizations": {
 		"vscode": {
 			"extensions": [
